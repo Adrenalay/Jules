@@ -17,19 +17,14 @@ void actualizarFlipFlopJK(bool J, bool K, bool clk_signal, bool CLR_input, FlipF
   } else {
     // Detectar flanco de subida del reloj (LOW -> HIGH)
     if (ff.prevClk == LOW && clk_signal == HIGH) {
-      bool current_J = J;
-      bool current_K = K;
+      // Lógica de compuertas como en la estructura del docente
+      bool mantener = (!J && !K);  // Mantener el valor de Q
+      bool reset_op = (!J &&  K);  // Reset: Q = 0 (renombrado para evitar conflicto con palabra clave)
+      bool set_op   = ( J && !K);  // Set: Q = 1 (renombrado para evitar conflicto con palabra clave)
+      bool toggle   = ( J &&  K);  // Toggle: Q = ¬Q
 
-      // Lógica interna del Flip-Flop JK
-      if (!current_J && !current_K) { // J=0, K=0: Mantener
-        // ff.Q = ff.Q; // No cambia
-      } else if (!current_J && current_K) { // J=0, K=1: Reset
-        ff.Q = false;
-      } else if (current_J && !current_K) { // J=1, K=0: Set
-        ff.Q = true;
-      } else { // J=1, K=1: Toggle
-        ff.Q = !ff.Q;
-      }
+      // MUX lógico para determinar el nuevo valor de Q, usando la forma del docente
+      ff.Q = (mantener && ff.Q) || (reset_op && false) || (set_op && true) || (toggle && !ff.Q);
       ff.notQ = !ff.Q;
     }
   }
@@ -124,6 +119,8 @@ bool NOT_gate(bool a) {
 }
 
 // --- Fin Definiciones ---
+// Declaración anticipada para mostrarDisplay si su definición está después de setup() o loop()
+// void mostrarDisplay(Display7Segmentos d); // Asegurarse que esta línea existe o la definición está antes del uso.
 
 void setup() {
   // Inicializar Serial para depuración
@@ -172,7 +169,8 @@ void generar_reloj_interno() {
 }
 
 // Función para mostrar un dígito en un display específico (Parte 4)
-void mostrarDigitoEnDisplay(Display7Segmentos d) {
+// Renombrada a mostrarDisplay y lógica de FlipFlopJK actualizada
+void mostrarDisplay(Display7Segmentos d) { // Nombre corregido
   // Apagar ambos displays primero para evitar "ghosting"
   digitalWrite(displays[0].pinEnable, HIGH);
   digitalWrite(displays[1].pinEnable, HIGH);
@@ -230,13 +228,6 @@ void loop() {
       K3 = AND_gate(AND_gate(ff0.Q, ff1.Q), ff2.Q);
     } else {
       // Lógica para contador descendente
-      // Para K = J = !Qn : el flip flop hace toggle si Qn es 0, y se mantiene si Qn es 1.
-      // Esto significa que si Qn=0, Qn+1 = 1. Si Qn=1, Qn+1 = 1. No es lo que queremos para contar hacia abajo.
-      // Para contar hacia abajo, el bit N debe cambiar cuando todos los bits anteriores (0 a N-1) son 0.
-      // FF1 togglea si FF0 es 0 (es decir, !ff0.Q)
-      // FF2 togglea si FF0 y FF1 son 0 (es decir, !ff0.Q AND !ff1.Q)
-      // FF3 togglea si FF0, FF1 y FF2 son 0 (es decir, !ff0.Q AND !ff1.Q AND !ff2.Q)
-      // Un flip-flop JK togglea si J=1 y K=1.
       J1 = NOT_gate(ff0.Q);
       K1 = NOT_gate(ff0.Q);
       J2 = AND_gate(NOT_gate(ff0.Q), NOT_gate(ff1.Q));
@@ -264,10 +255,10 @@ void loop() {
   displays[1].digito = contador_valor_actual % 10;      // Unidades
 
   // Multiplexado de displays
-  mostrarDigitoEnDisplay(displays[0]); // Muestra decenas
+  mostrarDisplay(displays[0]); // Muestra decenas // Nombre corregido aquí también
   delay(5); // Tiempo visible para el display de decenas (ajustar para brillo/parpadeo)
 
-  mostrarDigitoEnDisplay(displays[1]); // Muestra unidades
+  mostrarDisplay(displays[1]); // Muestra unidades // Nombre corregido aquí también
   delay(5); // Tiempo visible para el display de unidades
 
 }
