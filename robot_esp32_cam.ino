@@ -28,12 +28,11 @@ struct MOTOR_PINS
   int pinIN2;  // Dirección 2
 };
 
-// NOTA: Los pines 1 y 3 son TX/RX. Si el adaptador USB-Serial está conectado,
-// el motor izquierdo no funcionará correctamente o el ESP32 se reiniciará.
+// NOTA: El pin 1 es TX. El pin 3 ha sido cambiado por el 16 para evitar conflictos seriales.
 std::vector<MOTOR_PINS> motorPins =
 {
   {2, 12, 13}, // Motor derecho
-  {2, 1, 3},   // Motor izquierdo
+  {2, 1, 16},  // Motor izquierdo
 };
 
 #define LIGHT_PIN 4
