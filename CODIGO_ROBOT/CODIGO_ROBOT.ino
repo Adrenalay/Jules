@@ -1,8 +1,3 @@
-/*******************************************************
- *  PROYECTO: Robot Explorador con ESP32-CAM - AUTOR: Electro T3D
- *  DESCRIPCIÓN: Versión Original con corrección de Pin 16 y Estabilidad WiFi.
- *******************************************************/
-
 #include "esp_camera.h"      // Librería para controlar la cámara del ESP32-CAM
 #include <Arduino.h>         // Librería base de Arduino (funciones principales)
 #include <WiFi.h>            // Permite conectar el ESP32 a redes WiFi
@@ -11,8 +6,6 @@
 #include <iostream>          // Manejo de entrada/salida (uso interno, estilo C++)
 #include <sstream>           // Manipulación de textos/strings (procesamiento de datos)
 #include <ESP32Servo.h>      // Control de servomotores (pan y tilt de la cámara)
-#include "soc/soc.h"           // Para desactivar brownout
-#include "soc/rtc_cntl_reg.h"  // Para desactivar brownout
 
 // ===================== CONFIGURACIÓN DE SERVOS =====================
 #define PAN_PIN 14     // Servo horizontal
@@ -29,11 +22,10 @@ struct MOTOR_PINS
 };
 
 // Pines de motores (derecho e izquierdo)
-// CAMBIO REALIZADO: Pin 3 -> 16 para evitar conflicto serial
 std::vector<MOTOR_PINS> motorPins =
 {
   {2, 12, 13}, // Motor derecho
-  {2, 1, 16},  // Motor izquierdo
+  {2, 1, 16},  // Motor izquierdo (Pin 3 cambiado a 16 por recomendación)
 };
 
 #define LIGHT_PIN 4  // LED frontal
@@ -84,7 +76,7 @@ AsyncWebSocket wsCarInput("/CarInput"); // WebSocket para controles
 
 uint32_t cameraClientId = 0;
 
-// ===================== INTERFAZ WEB HTML ORIGINAL =====================
+// ===================== INTERFAZ WEB HTML =====================
 const char* htmlHomePage PROGMEM = R"HTMLHOMEPAGE(
 <!DOCTYPE html>
 <html>
@@ -159,13 +151,13 @@ const char* htmlHomePage PROGMEM = R"HTMLHOMEPAGE(
   <body class="noselect" align="center" style="background-color:white">
 
 <h2 style="font-family: Arial; color:white; background-color:black; padding:8px; border-radius:10px;">
-  Robot VIGILANTE UCE-
-  POR FLEXI PETS
+  Robot Explorador Con ESP32CAM
+  By ElectroT3D
 </h2>
 
     <table id="mainTable" style="width:400px;margin:auto;table-layout:fixed" CELLSPACING=10>
       <tr>
-        <img id="cameraImage" src="" style="width:400px;height:250px"></td>
+        <td colspan="3"><img id="cameraImage" src="" style="width:400px;height:250px"></td>
       </tr>
       <tr>
         <td></td>
@@ -279,49 +271,57 @@ void rotateMotor(int motorNumber, int motorDirection)
   {
     digitalWrite(motorPins[motorNumber].pinIN1, HIGH);
     digitalWrite(motorPins[motorNumber].pinIN2, LOW);
+    Serial.printf("Motor %d: ADELANTE\n", motorNumber);
   }
   else if (motorDirection == BACKWARD)
   {
     digitalWrite(motorPins[motorNumber].pinIN1, LOW);
     digitalWrite(motorPins[motorNumber].pinIN2, HIGH);
+    Serial.printf("Motor %d: ATRAS\n", motorNumber);
   }
   else
   {
     // Motor detenido
     digitalWrite(motorPins[motorNumber].pinIN1, LOW);
     digitalWrite(motorPins[motorNumber].pinIN2, LOW);
+    Serial.printf("Motor %d: PARAR\n", motorNumber);
   }
 }
 
 // ===================== MOVIMIENTO DEL ROBOT =====================
 void moveCar(int inputValue)
 {
-  Serial.printf("Valor recibido: %d\n", inputValue);
+  Serial.printf("Valor recibido: %d -> ", inputValue);
 
   switch(inputValue)
   {
     case UP: // Adelante
+      Serial.println("ORDEN: ADELANTE");
       rotateMotor(RIGHT_MOTOR, FORWARD);
       rotateMotor(LEFT_MOTOR, FORWARD);
       break;
 
     case DOWN: // Atrás
+      Serial.println("ORDEN: ATRAS");
       rotateMotor(RIGHT_MOTOR, BACKWARD);
       rotateMotor(LEFT_MOTOR, BACKWARD);
       break;
 
     case LEFT: // Izquierda
+      Serial.println("ORDEN: IZQUIERDA");
       rotateMotor(RIGHT_MOTOR, FORWARD);
       rotateMotor(LEFT_MOTOR, BACKWARD);
       break;
 
     case RIGHT: // Derecha
+      Serial.println("ORDEN: DERECHA");
       rotateMotor(RIGHT_MOTOR, BACKWARD);
       rotateMotor(LEFT_MOTOR, FORWARD);
       break;
 
     case STOP: // Detener
     default:
+      Serial.println("ORDEN: PARAR");
       rotateMotor(RIGHT_MOTOR, STOP);
       rotateMotor(LEFT_MOTOR, STOP);
       break;
@@ -353,6 +353,16 @@ void onCarInputWebSocketEvent(AsyncWebSocket *server,
       Serial.println("Cliente conectado");
       break;
 
+    case WS_EVT_DISCONNECT:
+      Serial.println("Cliente desconectado");
+
+      // Seguridad: detener todo
+      moveCar(0);
+      ledcWrite(PWMLightChannel, 0);
+      panServo.write(90);
+      tiltServo.write(90);
+      break;
+
     case WS_EVT_DATA:
     {
       // Recibir datos tipo: "Speed,150"
@@ -366,7 +376,7 @@ void onCarInputWebSocketEvent(AsyncWebSocket *server,
       int val = atoi(value.c_str());
 
       if (key == "MoveCar") moveCar(val);
-      else if (key == "Speed") ledcWrite(PWMSpeedChannel, val);
+      else if (key == "Speed") { ledcWrite(PWMSpeedChannel, val); Serial.printf("Velocidad PWM recibida: %d\n", val); }
       else if (key == "Light") ledcWrite(PWMLightChannel, val);
       else if (key == "Pan") panServo.write(val);
       else if (key == "Tilt") tiltServo.write(val);
@@ -423,11 +433,11 @@ void setupCamera()
   config.pin_reset = RESET_GPIO_NUM;
 
   // Configuración de imagen
-  config.xclk_freq_hz = 10000000; // Estabilidad: Reducido a 10MHz
+  config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   config.frame_size = FRAMESIZE_VGA;
-  config.jpeg_quality = 12;
-  config.fb_count = 1;
+  config.jpeg_quality = 10;
+  config.fb_count = 2;
 
   // Inicializar cámara
   esp_camera_init(&config);
@@ -467,9 +477,9 @@ void setUpPinModes()
 
   for (int i = 0; i < motorPins.size(); i++)
   {
+    pinMode(motorPins[i].pinEn, OUTPUT);
     pinMode(motorPins[i].pinIN1, OUTPUT);
     pinMode(motorPins[i].pinIN2, OUTPUT);
-    pinMode(motorPins[i].pinEn, OUTPUT);
 
     ledcAttachPin(motorPins[i].pinEn, PWMSpeedChannel);
   }
@@ -483,14 +493,10 @@ void setUpPinModes()
 // ===================== SETUP =====================
 void setup()
 {
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Desactivar brownout para estabilidad
   Serial.begin(115200);
-
+  Serial.println("\n=== MONITOR SERIE ACTIVADO ===");
   setUpPinModes();
-
-  WiFi.setSleep(false); // ESTABILIDAD WIFI: Desactivar modo sueño
   WiFi.softAP(ssid, password); // Crear red WiFi
-
   server.on("/", HTTP_GET, handleRoot);
   server.onNotFound(handleNotFound);
   wsCamera.onEvent(onCameraWebSocketEvent);
@@ -499,6 +505,7 @@ void setup()
   server.addHandler(&wsCarInput);
   server.begin();
   setupCamera();
+  Serial.println(">>> SISTEMA LISTO PARA COMANDOS <<<");
 }
 
 // ===================== LOOP =====================
