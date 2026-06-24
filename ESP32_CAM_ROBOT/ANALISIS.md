@@ -5,6 +5,7 @@ Se ha realizado una revisión integral y se han aplicado correcciones quirúrgic
 ## 1. Correcciones de Movimiento (NUEVO)
 
 *   **Inversión de Giro:** Se ha solucionado el problema donde el robot giraba a la derecha al presionar izquierda y viceversa. Esto se logró intercambiando lógicamente los pines de los motores en la configuración `motorPins`. Ahora el comportamiento coincide con la interfaz web.
+*   **Inversión de Servo Pan:** Se ha corregido el giro invertido del servomotor horizontal (Pan) aplicando la fórmula `180 - valor`.
 *   **Prevención de Jitter:** Se han comentado las funciones `Serial` en las secciones críticas. Debido a que el motor derecho utiliza el GPIO 1 (TX), cualquier intento de imprimir datos por el puerto serie causaría movimientos erráticos o ruidos en los motores.
 
 ## 2. Mejoras de Estabilidad (Implementadas)

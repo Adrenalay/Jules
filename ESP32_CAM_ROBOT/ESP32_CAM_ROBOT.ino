@@ -379,7 +379,7 @@ void onCarInputWebSocketEvent(AsyncWebSocket *server,
       if (key == "MoveCar") moveCar(val);
       else if (key == "Speed") ledcWrite(PWMSpeedChannel, val);
       else if (key == "Light") ledcWrite(PWMLightChannel, val);
-      else if (key == "Pan") panServo.write(val);
+      else if (key == "Pan") panServo.write(180 - val); // Invertido para corregir dirección
       else if (key == "Tilt") tiltServo.write(val);
     }
     break;
