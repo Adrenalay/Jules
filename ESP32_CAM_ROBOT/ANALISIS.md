@@ -1,22 +1,28 @@
 # Informe Final de Optimización: Robot Explorador ESP32-CAM
 
-Se ha realizado una revisión integral y se han aplicado correcciones quirúrgicas al código del sistema "FLEXI PETS".
+Se ha realizado una revisión integral y se han aplicado las optimizaciones solicitadas al sistema "VIGILANCIA-FLEXI PETS".
 
-## 1. Correcciones de Movimiento (NUEVO)
+## 1. Interfaz de Usuario
+*   **Encabezado Personalizado:** La página web ahora muestra con orgullo el nombre **"VIGILANCIA-FLEXI PETS"**.
 
-*   **Inversión de Giro:** Se ha solucionado el problema donde el robot giraba a la derecha al presionar izquierda y viceversa. Esto se logró intercambiando lógicamente los pines de los motores en la configuración `motorPins`. Ahora el comportamiento coincide con la interfaz web.
-*   **Inversión de Servo Pan:** Se ha corregido el giro invertido del servomotor horizontal (Pan) aplicando la fórmula `180 - valor`.
-*   **Prevención de Jitter:** Se han comentado las funciones `Serial` en las secciones críticas. Debido a que el motor derecho utiliza el GPIO 1 (TX), cualquier intento de imprimir datos por el puerto serie causaría movimientos erráticos o ruidos en los motores.
+## 2. Correcciones de Movimiento y Control
+*   **Inversión de Giro:** Solucionado el problema de dirección (Izquierda/Derecha) mediante el intercambio de pines en la configuración.
+*   **Inversión de Servo Pan:** Corregido el giro del servomotor horizontal aplicando una inversión lógica (`180 - val`).
+*   **Prevención de Jitter:** Comunicación Serial desactivada para evitar interferencias con el motor en el pin TX (GPIO 1).
 
-## 2. Mejoras de Estabilidad (Implementadas)
+## 3. Optimizaciones de Estabilidad (Hardware ESP32-CAM)
+*   **Protección contra Reinicios:** Desactivación del detector de Brownout.
+*   **WiFi de Alta Respuesta:** Desactivado el modo sleep para eliminar el lag.
+*   **Configuración de Cámara Estable:**
+    *   Frecuencia XCLK a **10MHz**.
+    *   Buffer de imagen único (`fb_count = 1`) para máxima estabilidad de RAM.
 
-*   **Protección Brownout:** Desactivada para prevenir reinicios accidentales por picos de tensión.
-*   **WiFi de Baja Latencia:** Se ha desactivado el modo de ahorro de energía del WiFi (`WiFi.setSleep(false)`) para asegurar que el video y los comandos fluyan sin retrasos.
-*   **Optimización de Cámara:**
-    *   **XCLK a 10MHz:** Mayor estabilidad y menor calor.
-    *   **Buffer Simple (fb_count = 1):** Liberación de memoria RAM crítica para el servidor web.
+## 4. Instrucciones de Configuración en Arduino IDE
+Para que el robot funcione correctamente, DEBES configurar el IDE de Arduino así:
+1.  **Board:** "AI Thinker ESP32-CAM".
+2.  **PSRAM:** "Disabled" (Obligatorio por el uso del GPIO 16).
+3.  **Flash Mode:** "QIO".
+4.  **Flash Frequency:** "80MHz".
 
-## 3. Advertencias Finales de Hardware
-
-*   **Conflicto GPIO 16 (PSRAM):** El motor derecho utiliza el pin 16. **DEBES desactivar la PSRAM** en el menú `Tools -> PSRAM -> Disabled` del IDE de Arduino. Si no lo haces, el ESP32 se reiniciará al intentar girar.
-*   **Energía:** Se recomienda alimentar los motores y el ESP32 con fuentes separadas o usar un condensador de **1000uF** para estabilizar la línea de 5V.
+---
+*Optimizado para máxima estabilidad y respuesta en tiempo real.*

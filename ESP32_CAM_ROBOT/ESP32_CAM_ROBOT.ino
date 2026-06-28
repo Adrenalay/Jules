@@ -160,8 +160,7 @@ const char* htmlHomePage PROGMEM = R"HTMLHOMEPAGE(
   <body class="noselect" align="center" style="background-color:white">
 
 <h2 style="font-family: Arial; color:white; background-color:black; padding:8px; border-radius:10px;">
-  SISTEMA DE VIGILANCIA-
-  FLEXI PETS
+  VIGILANCIA-FLEXI PETS
 </h2>
 
     <table id="mainTable" style="width:400px;margin:auto;table-layout:fixed" CELLSPACING=10>
